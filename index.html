@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AquaWatch — Water Quality Monitor</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #f0f4f8;
+  --card: #ffffff;
+  --text: #1a2332;
+  --muted: #8a9bb0;
+  --accent-blue: #2563eb;
+  --accent-teal: #0d9488;
+  --accent-rose: #e11d48;
+  --accent-violet: #7c3aed;
+  --border: #e2e8f0;
+  --shadow: 0 4px 24px rgba(0,0,0,0.07);
+  --shadow-lg: 0 12px 48px rgba(0,0,0,0.12);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+
+/* HEADER */
+header {
+  background:var(--card); border-bottom:1px solid var(--border);
+  padding:0 2rem; display:flex; align-items:center;
+  justify-content:space-between; height:64px;
+  position:sticky; top:0; z-index:200;
+  box-shadow:0 1px 12px rgba(0,0,0,0.05);
+}
+.logo { display:flex; align-items:center; gap:10px; }
+.logo-icon {
+  width:36px; height:36px;
+  background:linear-gradient(135deg,#2563eb,#0d9488);
+  border-radius:10px; display:flex; align-items:center;
+  justify-content:center; font-size:18px;
+}
+.logo-text { font-family:'DM Serif Display',serif; font-size:1.2rem; }
+.header-right { display:flex; align-items:center; gap:10px; }
+.status-badge {
+  display:flex; align-items:center; gap:6px;
+  font-size:0.8rem; color:var(--muted);
+  background:#f8fafc; padding:6px 12px;
+  border-radius:20px; border:1px solid var(--border);
+}
+.status-dot {
+  width:8px; height:8px; border-radius:50%;
+  background:#10b981; animation:pulse 2s infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1);} 50%{opacity:0.5;transform:scale(0.8);} }
+
+.btn {
+  border:none; padding:8px 16px; border-radius:8px;
+  font-size:0.85rem; font-family:'DM Sans',sans-serif;
+  font-weight:500; cursor:pointer; transition:all 0.2s;
+  display:flex; align-items:center; gap:6px;
+}
+.btn-primary { background:var(--accent-blue); color:white; }
+.btn-primary:hover { background:#1d4ed8; transform:translateY(-1px); }
+.btn-success { background:#10b981; color:white; }
+.btn-success:hover { background:#059669; transform:translateY(-1px); }
+
+/* TABS */
+.tabs {
+  background:var(--card); border-bottom:1px solid var(--border);
+  padding:0 2rem; display:flex;
+}
+.tab {
+  padding:14px 20px; font-size:0.9rem; font-weight:500;
+  color:var(--muted); cursor:pointer;
+  border-bottom:2px solid transparent; transition:all 0.2s;
+  display:flex; align-items:center; gap:7px;
+}
+.tab:hover { color:var(--text); }
+.tab.active { color:var(--accent-blue); border-bottom-color:var(--accent-blue); }
+
+/* MAIN */
+main { max-width:1150px; margin:0 auto; padding:2rem 1.5rem; }
+.page { display:none; }
+.page.active { display:block; }
+
+.hero { margin-bottom:1.8rem; }
+.hero h1 { font-family:'DM Serif Display',serif; font-size:1.8rem; margin-bottom:4px; }
+.hero p { color:var(--muted); font-size:0.92rem; }
+
+/* STAT CARDS */
+.stat-grid {
+  display:grid; grid-template-columns:repeat(4,1fr);
+  gap:1rem; margin-bottom:1.8rem;
+}
+.stat-card {
+  background:var(--card); border-radius:16px;
+  padding:1.4rem; box-shadow:var(--shadow);
+  border:1px solid var(--border); position:relative;
+  overflow:hidden; transition:transform 0.2s,box-shadow 0.2s;
+  animation:fadeUp 0.5s ease both;
+}
+.stat-card:hover { transform:translateY(-3px); box-shadow:var(--shadow-lg); }
+.stat-card:nth-child(1){animation-delay:0.1s;}
+.stat-card:nth-child(2){animation-delay:0.2s;}
+.stat-card:nth-child(3){animation-delay:0.25s;}
+.stat-card:nth-child(4){animation-delay:0.3s;}
+@keyframes fadeUp { from{opacity:0;transform:translateY(20px);} to{opacity:1;transform:translateY(0);} }
+
+.stat-card::before {
+  content:''; position:absolute; top:0; right:0;
+  width:70px; height:70px;
+  border-radius:0 16px 0 70px; opacity:0.08;
+}
+.stat-card.temp::before { background:var(--accent-rose); }
+.stat-card.tds::before  { background:var(--accent-blue); }
+.stat-card.ph::before   { background:var(--accent-teal); }
+.stat-card.do::before   { background:var(--accent-violet); }
+
+.stat-icon {
+  width:40px; height:40px; border-radius:11px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:18px; margin-bottom:0.9rem;
+}
+.stat-card.temp .stat-icon { background:#fff1f2; }
+.stat-card.tds  .stat-icon { background:#eff6ff; }
+.stat-card.ph   .stat-icon { background:#f0fdfa; }
+.stat-card.do   .stat-icon { background:#f5f3ff; }
+
+.stat-label {
+  font-size:0.73rem; font-weight:600; color:var(--muted);
+  text-transform:uppercase; letter-spacing:0.08em; margin-bottom:5px;
+}
+.stat-value { font-family:'DM Serif Display',serif; font-size:2.1rem; line-height:1; margin-bottom:4px; }
+.stat-card.temp .stat-value { color:var(--accent-rose); }
+.stat-card.tds  .stat-value { color:var(--accent-blue); }
+.stat-card.ph   .stat-value { color:var(--accent-teal); }
+.stat-card.do   .stat-value { color:var(--accent-violet); }
+.stat-unit { font-size:0.82rem; color:var(--muted); }
+.stat-status {
+  display:inline-flex; align-items:center; gap:4px;
+  font-size:0.72rem; font-weight:600;
+  padding:3px 8px; border-radius:20px; margin-top:8px;
+}
+.status-good { background:#dcfce7; color:#16a34a; }
+.status-warn { background:#fef9c3; color:#ca8a04; }
+.status-bad  { background:#fee2e2; color:#dc2626; }
+
+/* CHARTS */
+.chart-grid {
+  display:grid; grid-template-columns:1fr 1fr;
+  gap:1rem; margin-bottom:1.8rem;
+}
+.chart-card {
+  background:var(--card); border-radius:16px;
+  padding:1.4rem; box-shadow:var(--shadow);
+  border:1px solid var(--border);
+  animation:fadeUp 0.5s ease 0.35s both;
+}
+.chart-title { font-family:'DM Serif Display',serif; font-size:1rem; margin-bottom:1rem; }
+.chart-wrap { position:relative; height:200px; }
+
+/* HISTORY */
+.history-toolbar {
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:1.2rem; flex-wrap:wrap; gap:10px;
+}
+.history-toolbar-left { display:flex; gap:8px; align-items:center; }
+.filter-select {
+  padding:8px 14px; border-radius:8px;
+  border:1px solid var(--border); background:var(--card);
+  font-family:'DM Sans',sans-serif; font-size:0.85rem;
+  color:var(--text); cursor:pointer; outline:none;
+}
+.filter-select:focus { border-color:var(--accent-blue); }
+
+.table-section {
+  background:var(--card); border-radius:16px;
+  box-shadow:var(--shadow); border:1px solid var(--border);
+  overflow:hidden;
+}
+.table-header {
+  padding:1.1rem 1.5rem; border-bottom:1px solid var(--border);
+  display:flex; align-items:center; justify-content:space-between;
+}
+.table-title { font-family:'DM Serif Display',serif; font-size:1.05rem; }
+.table-count {
+  font-size:0.78rem; color:var(--muted);
+  background:#f8fafc; padding:4px 10px;
+  border-radius:20px; border:1px solid var(--border);
+}
+table { width:100%; border-collapse:collapse; }
+thead th {
+  padding:0.7rem 1.3rem; text-align:left;
+  font-size:0.72rem; font-weight:600; color:var(--muted);
+  text-transform:uppercase; letter-spacing:0.08em;
+  background:#f8fafc; border-bottom:1px solid var(--border);
+}
+tbody tr { border-bottom:1px solid var(--border); transition:background 0.15s; }
+tbody tr:last-child { border-bottom:none; }
+tbody tr:hover { background:#f8fafc; }
+tbody td { padding:0.8rem 1.3rem; font-size:0.88rem; }
+.td-temp { color:var(--accent-rose); font-weight:600; }
+.td-tds  { color:var(--accent-blue); font-weight:600; }
+.td-ph   { color:var(--accent-teal); font-weight:600; }
+.td-do   { color:var(--accent-violet); font-weight:600; }
+.td-time { color:var(--muted); font-size:0.8rem; }
+
+.loading { text-align:center; padding:3rem; color:var(--muted); }
+.spinner {
+  width:34px; height:34px;
+  border:3px solid var(--border); border-top-color:var(--accent-blue);
+  border-radius:50%; animation:spin 0.8s linear infinite; margin:0 auto 1rem;
+}
+@keyframes spin { to{transform:rotate(360deg);} }
+.empty { text-align:center; padding:3rem; color:var(--muted); }
+.empty-icon { font-size:2.5rem; margin-bottom:0.75rem; }
+
+.last-updated { text-align:center; margin-top:1.2rem; font-size:0.78rem; color:var(--muted); }
+
+.pagination {
+  display:flex; justify-content:center; align-items:center;
+  gap:8px; padding:1rem; border-top:1px solid var(--border);
+}
+.page-btn {
+  padding:6px 12px; border-radius:7px;
+  border:1px solid var(--border); background:var(--card);
+  font-family:'DM Sans',sans-serif; font-size:0.83rem;
+  cursor:pointer; transition:all 0.15s; color:var(--text);
+}
+.page-btn:hover { background:var(--bg); }
+.page-btn.active { background:var(--accent-blue); color:white; border-color:var(--accent-blue); }
+.page-btn:disabled { opacity:0.4; cursor:not-allowed; }
+
+@media(max-width:768px){
+  .stat-grid { grid-template-columns:1fr 1fr; }
+  .chart-grid { grid-template-columns:1fr; }
+}
+@media(max-width:480px){
+  .stat-grid { grid-template-columns:1fr; }
+  header { padding:0 1rem; }
+  .tabs { padding:0 1rem; overflow-x:auto; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">💧</div>
+    <span class="logo-text">AquaWatch</span>
+  </div>
+  <div class="header-right">
+    <div class="status-badge"><div class="status-dot"></div>Live</div>
+    <button class="btn btn-success" onclick="exportCSV()">⬇ CSV</button>
+    <button class="btn btn-primary" onclick="loadData()">↻ Refresh</button>
+  </div>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('live',this)">📡 Live Dashboard</div>
+  <div class="tab" onclick="switchTab('history',this)">🗂 History & Dataset</div>
+</div>
+
+<main>
+
+<!-- LIVE PAGE -->
+<div id="page-live" class="page active">
+  <div class="hero">
+    <h1>Live Water Quality</h1>
+    <p>Latest sensor readings — auto-refreshes every 30 seconds</p>
+  </div>
+
+  <div class="stat-grid">
+    <div class="stat-card temp">
+      <div class="stat-icon">🌡️</div>
+      <div class="stat-label">Temperature</div>
+      <div class="stat-value" id="v-temp">--</div>
+      <div class="stat-unit">°C</div>
+      <div id="s-temp"></div>
+    </div>
+    <div class="stat-card tds">
+      <div class="stat-icon">💧</div>
+      <div class="stat-label">TDS</div>
+      <div class="stat-value" id="v-tds">--</div>
+      <div class="stat-unit">ppm</div>
+      <div id="s-tds"></div>
+    </div>
+    <div class="stat-card ph">
+      <div class="stat-icon">⚗️</div>
+      <div class="stat-label">pH Level</div>
+      <div class="stat-value" id="v-ph">--</div>
+      <div class="stat-unit">pH</div>
+      <div id="s-ph"></div>
+    </div>
+    <div class="stat-card do">
+      <div class="stat-icon">🫧</div>
+      <div class="stat-label">Dissolved O₂</div>
+      <div class="stat-value" id="v-do">--</div>
+      <div class="stat-unit">mg/L</div>
+      <div id="s-do"></div>
+    </div>
+  </div>
+
+  <div class="chart-grid">
+    <div class="chart-card">
+      <div class="chart-title">🌡️ Temperature — last 20 readings</div>
+      <div class="chart-wrap"><canvas id="chart-temp"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">⚗️ pH Level — last 20 readings</div>
+      <div class="chart-wrap"><canvas id="chart-ph"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">💧 TDS — last 20 readings</div>
+      <div class="chart-wrap"><canvas id="chart-tds"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">🫧 Dissolved O₂ — last 20 readings</div>
+      <div class="chart-wrap"><canvas id="chart-do"></canvas></div>
+    </div>
+  </div>
+
+  <div class="last-updated" id="last-updated-live"></div>
+</div>
+
+<!-- HISTORY PAGE -->
+<div id="page-history" class="page">
+  <div class="hero">
+    <h1>History & Dataset</h1>
+    <p>Browse all recorded readings and export as CSV</p>
+  </div>
+
+  <div class="history-toolbar">
+    <div class="history-toolbar-left">
+      <select class="filter-select" id="filter-limit" onchange="currentPage=1;renderTable()">
+        <option value="50">Last 50</option>
+        <option value="100" selected>Last 100</option>
+        <option value="200">Last 200</option>
+        <option value="all">All Records</option>
+      </select>
+    </div>
+    <button class="btn btn-success" onclick="exportCSV()">⬇ Download CSV</button>
+  </div>
+
+  <div class="table-section">
+    <div class="table-header">
+      <div class="table-title">All Readings</div>
+      <div class="table-count" id="history-count">Loading...</div>
+    </div>
+    <div id="history-body">
+      <div class="loading"><div class="spinner"></div><div>Fetching data...</div></div>
+    </div>
+    <div id="pagination"></div>
+  </div>
+  <div class="last-updated" id="last-updated-history"></div>
+</div>
+
+</main>
+
+<script>
+const API = "https://water-api-5vhg.onrender.com/data";
+let allData = [];
+let currentPage = 1;
+const perPage = 20;
+let charts = {};
+
+function switchTab(tab, el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('page-'+tab).classList.add('active');
+}
+
+function statusTemp(v){ return v<10||v>40?['Bad','status-bad']:v<15||v>35?['Warn','status-warn']:['Normal','status-good']; }
+function statusTDS(v) { return v>500?['Too High','status-bad']:v>300?['Elevated','status-warn']:['Good','status-good']; }
+function statusPH(v)  { return v<6||v>9?['Bad','status-bad']:v<6.5||v>8.5?['Warn','status-warn']:['Normal','status-good']; }
+function statusDO(v)  { return v<5?['Low','status-bad']:v<7?['Fair','status-warn']:['Good','status-good']; }
+
+function setStatus(id,label,cls){
+  const el=document.getElementById(id);
+  if(el) el.innerHTML=`<span class="stat-status ${cls}">● ${label}</span>`;
+}
+
+function makeChart(id,label,color,data,labels){
+  if(charts[id]) charts[id].destroy();
+  const ctx=document.getElementById(id);
+  if(!ctx) return;
+  charts[id]=new Chart(ctx,{
+    type:'line',
+    data:{ labels, datasets:[{ label, data, borderColor:color, backgroundColor:color+'18',
+      borderWidth:2.5, pointRadius:3, pointBackgroundColor:color, tension:0.4, fill:true }]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{grid:{color:'#e2e8f0'},ticks:{color:'#8a9bb0',font:{size:10},maxTicksLimit:6}},
+        y:{grid:{color:'#e2e8f0'},ticks:{color:'#8a9bb0',font:{size:10}}}
+      }
+    }
+  });
+}
+
+async function loadData(){
+  try{
+    const res=await fetch(API);
+    allData=await res.json();
+    updateLive();
+    renderTable();
+  } catch(e){
+    document.getElementById('history-body').innerHTML=
+      '<div class="empty"><div class="empty-icon">⚠️</div><div>Could not connect to server.</div></div>';
+  }
+}
+
+function updateLive(){
+  if(!allData.length) return;
+  const l=allData[0];
+  document.getElementById('v-temp').textContent=l.temp??'--';
+  document.getElementById('v-tds').textContent =l.tds??'--';
+  document.getElementById('v-ph').textContent  =l.ph??'--';
+  document.getElementById('v-do').textContent  =l.do??'--';
+
+  const [tl,tc]=statusTemp(l.temp); setStatus('s-temp',tl,tc);
+  const [dl,dc]=statusTDS(l.tds);   setStatus('s-tds',dl,dc);
+  const [pl,pc]=statusPH(l.ph);     setStatus('s-ph',pl,pc);
+  const [ol,oc]=statusDO(l.do);     setStatus('s-do',ol,oc);
+
+  const slice=[...allData].slice(0,20).reverse();
+  const labels=slice.map(d=>{
+    const dt=new Date(d.time);
+    return dt.getHours()+':'+String(dt.getMinutes()).padStart(2,'0');
+  });
+  makeChart('chart-temp','Temp','#e11d48',slice.map(d=>d.temp),labels);
+  makeChart('chart-ph','pH','#0d9488',    slice.map(d=>d.ph),  labels);
+  makeChart('chart-tds','TDS','#2563eb',  slice.map(d=>d.tds), labels);
+  makeChart('chart-do','DO','#7c3aed',    slice.map(d=>d.do),  labels);
+
+  document.getElementById('last-updated-live').textContent='Last updated: '+new Date().toLocaleTimeString();
+}
+
+function renderTable(){
+  const limitSel=document.getElementById('filter-limit').value;
+  const data=limitSel==='all'?allData:allData.slice(0,parseInt(limitSel));
+  const totalPages=Math.ceil(data.length/perPage);
+  if(currentPage>totalPages) currentPage=1;
+  const pageData=data.slice((currentPage-1)*perPage,currentPage*perPage);
+
+  if(!data.length){
+    document.getElementById('history-body').innerHTML=
+      '<div class="empty"><div class="empty-icon">📭</div><div>No data yet. Connect your ESP32!</div></div>';
+    document.getElementById('history-count').textContent='0 records';
+    document.getElementById('pagination').innerHTML='';
+    return;
+  }
+
+  document.getElementById('history-count').textContent=data.length+' records';
+
+  const rows=pageData.map(d=>`
+    <tr>
+      <td class="td-temp">${d.temp??'--'} °C</td>
+      <td class="td-tds">${d.tds??'--'} ppm</td>
+      <td class="td-ph">${d.ph??'--'}</td>
+      <td class="td-do">${d.do??'--'} mg/L</td>
+      <td class="td-time">${new Date(d.time).toLocaleString()}</td>
+    </tr>`).join('');
+
+  document.getElementById('history-body').innerHTML=`
+    <table>
+      <thead><tr>
+        <th>🌡️ Temp (°C)</th><th>💧 TDS (ppm)</th>
+        <th>⚗️ pH</th><th>🫧 DO (mg/L)</th><th>🕐 Time</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+
+  let pag='<div class="pagination">';
+  pag+=`<button class="page-btn" onclick="goPage(${currentPage-1})" ${currentPage===1?'disabled':''}>← Prev</button>`;
+  for(let i=1;i<=totalPages;i++){
+    if(totalPages<=7||i===1||i===totalPages||Math.abs(i-currentPage)<=1)
+      pag+=`<button class="page-btn ${i===currentPage?'active':''}" onclick="goPage(${i})">${i}</button>`;
+    else if(Math.abs(i-currentPage)===2)
+      pag+=`<span style="color:var(--muted);padding:0 4px">…</span>`;
+  }
+  pag+=`<button class="page-btn" onclick="goPage(${currentPage+1})" ${currentPage===totalPages?'disabled':''}>Next →</button>`;
+  pag+='</div>';
+  document.getElementById('pagination').innerHTML=pag;
+  document.getElementById('last-updated-history').textContent='Last updated: '+new Date().toLocaleTimeString();
+}
+
+function goPage(p){
+  const limitSel=document.getElementById('filter-limit').value;
+  const data=limitSel==='all'?allData:allData.slice(0,parseInt(limitSel));
+  const total=Math.ceil(data.length/perPage);
+  if(p<1||p>total) return;
+  currentPage=p; renderTable();
+}
+
+function exportCSV(){
+  if(!allData.length){ alert('No data to export!'); return; }
+  const header='Temperature(°C),TDS(ppm),pH,DO(mg/L),Time\n';
+  const rows=allData.map(d=>
+    `${d.temp??''},${d.tds??''},${d.ph??''},${d.do??''},"${new Date(d.time).toLocaleString()}"`
+  ).join('\n');
+  const blob=new Blob([header+rows],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download='water_quality_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+loadData();
+setInterval(loadData,30000);
+</script>
+</body>
+</html>
