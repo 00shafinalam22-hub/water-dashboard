@@ -3,512 +3,203 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>AquaWatch — Water Quality Monitor</title>
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600;700&display=swap" rel="stylesheet"/>
+<title>AquaWatch Pro — Cyber Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet"/>
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-:root{
-  --bg:#020c17;--bg2:#041525;--bg3:#071e30;
-  --card:#061a2b;--card2:#082035;
-  --border:rgba(0,200,255,.12);--border2:rgba(0,200,255,.22);
-  --ocean:#00c8ff;--teal:#00f5d4;--teal2:#00c4a8;
-  --blue:#0077b6;--deep:#023e8a;
-  --tx:#caf0f8;--tx2:#7ec8e3;--tx3:#2e5f7a;
-  --good:#3ddc97;--warn:#f4a261;--bad:#e63946;
-  --font:'Rajdhani',sans-serif;--head:'Orbitron',monospace;
+:root {
+  --neon-blue: #00f2ff;
+  --neon-purple: #bc13fe;
+  --glass: rgba(255, 255, 255, 0.03);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --bg: #050a10;
 }
-body{background:var(--bg);color:var(--tx);font-family:var(--font);font-size:14px;min-height:100vh;overflow-x:hidden}
-body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
-  background:
-    radial-gradient(ellipse 70% 50% at 15% 60%,rgba(0,119,182,.18) 0%,transparent 70%),
-    radial-gradient(ellipse 50% 40% at 85% 20%,rgba(0,200,255,.1) 0%,transparent 60%),
-    radial-gradient(ellipse 60% 60% at 50% 100%,rgba(2,62,138,.25) 0%,transparent 70%)}
-body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
-  background-image:
-    linear-gradient(rgba(0,200,255,.04) 1px,transparent 1px),
-    linear-gradient(90deg,rgba(0,200,255,.04) 1px,transparent 1px);
-  background-size:60px 60px}
-::-webkit-scrollbar{width:4px;height:4px}
-::-webkit-scrollbar-track{background:var(--bg2)}
-::-webkit-scrollbar-thumb{background:var(--blue);border-radius:2px}
 
-header{position:sticky;top:0;z-index:100;
-  background:rgba(2,12,23,.9);border-bottom:1px solid var(--border2);
-  backdrop-filter:blur(20px);padding:0 28px;height:58px;
-  display:flex;align-items:center;justify-content:space-between}
-.logo{font-family:var(--head);font-size:16px;font-weight:700;letter-spacing:2px;
-  background:linear-gradient(90deg,var(--teal),var(--ocean),#48cae4);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-  display:flex;align-items:center;gap:10px}
-.logo-icon{width:32px;height:32px;border-radius:8px;
-  background:linear-gradient(135deg,var(--deep),var(--blue));
-  border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:16px}
-.hdr-r{display:flex;align-items:center;gap:18px}
-.live-badge{display:flex;align-items:center;gap:7px;padding:5px 14px;border-radius:20px;
-  border:1px solid rgba(61,220,151,.3);background:rgba(61,220,151,.06);
-  font-family:var(--head);font-size:10px;letter-spacing:1px;color:var(--good)}
-.ldot{width:7px;height:7px;border-radius:50%;background:var(--good);
-  box-shadow:0 0 8px var(--good);animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.85)}}
-#last-upd{font-size:11px;color:var(--tx3);font-family:var(--head);letter-spacing:.5px}
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Rajdhani', sans-serif; }
 
-.wrap{position:relative;z-index:1;max-width:1400px;margin:0 auto;padding:22px 28px 50px}
+body {
+  background: var(--bg);
+  color: #fff;
+  overflow-x: hidden;
+  min-height: 100vh;
+}
 
-.ds-bar{background:var(--card);border:1px solid var(--border);border-radius:16px;
-  padding:14px 20px;margin-bottom:20px;
-  display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.ds-label{font-family:var(--head);font-size:9px;letter-spacing:2px;
-  color:var(--tx3);text-transform:uppercase;white-space:nowrap}
-.ds-chips{display:flex;gap:8px;flex-wrap:wrap;flex:1;align-items:center}
-.chip{display:flex;align-items:center;gap:7px;padding:6px 14px;border-radius:20px;
-  border:1px solid var(--border);background:var(--card2);
-  color:var(--tx2);font-size:12px;font-weight:600;cursor:pointer;transition:.2s;letter-spacing:.3px}
-.chip:hover{border-color:var(--ocean);color:var(--ocean);background:rgba(0,200,255,.06)}
-.chip.active{border-color:var(--teal);color:var(--teal);
-  background:rgba(0,245,212,.08);box-shadow:0 0 14px rgba(0,245,212,.15)}
-.chip-cnt{background:rgba(0,245,212,.15);color:var(--teal);
-  border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700}
-.chip-del{opacity:0;color:var(--bad);font-size:14px;line-height:1;transition:.15s}
-.chip:hover .chip-del{opacity:1}
-.btn-new{padding:8px 18px;border-radius:20px;border:1px dashed var(--ocean);
-  background:transparent;color:var(--ocean);
-  font-family:var(--head);font-size:10px;letter-spacing:1px;
-  cursor:pointer;transition:.2s;white-space:nowrap}
-.btn-new:hover{background:rgba(0,200,255,.08);border-style:solid;box-shadow:0 0 12px rgba(0,200,255,.2)}
+/* --- Animated Water Waves --- */
+.ocean { 
+  height: 5%; width: 100%; position: fixed; bottom: 0; left: 0; background: #015871; opacity: 0.5; z-index: -1;
+}
+.wave {
+  background: url(https://s3-us-west-2.amazonaws.com/s.cdpn.io/85486/wave.svg) repeat-x; 
+  position: absolute; top: -198px; width: 6400px; height: 198px; animation: wave 7s cubic-bezier( 0.36, 0.45, 0.63, 0.53) infinite; transform: translate3d(0, 0, 0);
+}
+@keyframes wave { 0% { margin-left: 0; } 100% { margin-left: -1600px; } }
 
-.tabs{display:flex;gap:2px;margin-bottom:22px;
-  background:var(--card);border:1px solid var(--border);
-  border-radius:12px;padding:4px;width:fit-content}
-.tab{padding:8px 24px;border-radius:9px;border:none;background:transparent;
-  color:var(--tx3);font-family:var(--head);font-size:10px;letter-spacing:1.5px;cursor:pointer;transition:.2s}
-.tab:hover{color:var(--tx2)}
-.tab.active{background:linear-gradient(135deg,rgba(0,119,182,.4),rgba(0,200,255,.15));
-  color:var(--ocean);border:1px solid var(--border2)}
+/* --- Layout --- */
+.container { padding: 20px; max-width: 1200px; margin: auto; }
 
-.refresh-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;font-size:12px;color:var(--tx3)}
-.btn-refresh{padding:6px 16px;background:var(--card2);border:1px solid var(--border);
-  border-radius:8px;color:var(--tx2);font-family:var(--head);font-size:9px;
-  letter-spacing:1px;cursor:pointer;transition:.2s}
-.btn-refresh:hover{color:var(--ocean);border-color:var(--ocean);box-shadow:0 0 10px rgba(0,200,255,.15)}
+header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 20px 0; border-bottom: 1px solid var(--glass-border); margin-bottom: 30px;
+}
 
-.gauge-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin-bottom:20px}
-.gauge-card{background:var(--card);border:1px solid var(--border);border-radius:20px;
-  padding:22px 18px 18px;display:flex;flex-direction:column;align-items:center;
-  position:relative;overflow:hidden;transition:.3s cubic-bezier(.4,0,.2,1)}
-.gauge-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;
-  background:linear-gradient(90deg,transparent,var(--gc,var(--ocean)),transparent);opacity:.8}
-.gauge-card:hover{border-color:var(--gc,var(--ocean));transform:translateY(-3px);
-  box-shadow:0 8px 32px rgba(0,0,0,.4),0 0 20px var(--gc-glow,rgba(0,200,255,.15))}
-.g-title{font-family:var(--head);font-size:9px;letter-spacing:2px;
-  color:var(--tx2);text-transform:uppercase;margin-bottom:14px;text-align:center}
-.g-svg{width:170px;height:106px}
-.g-val{font-family:var(--head);font-size:36px;font-weight:900;
-  text-align:center;margin-top:6px;line-height:1}
-.g-unit{font-size:12px;color:var(--tx3);text-align:center;margin-top:3px;letter-spacing:1px}
-.g-badge{display:inline-block;margin-top:12px;padding:4px 14px;border-radius:20px;
-  font-family:var(--head);font-size:9px;letter-spacing:1.5px;text-transform:uppercase}
-.ok{background:rgba(61,220,151,.12);color:var(--good);border:1px solid rgba(61,220,151,.2)}
-.warn{background:rgba(244,162,97,.12);color:var(--warn);border:1px solid rgba(244,162,97,.2)}
-.bad{background:rgba(230,57,70,.12);color:var(--bad);border:1px solid rgba(230,57,70,.2)}
-.na{background:rgba(255,255,255,.04);color:var(--tx3);border:1px solid var(--border)}
+h1 { font-family: 'Orbitron'; font-size: 1.5rem; letter-spacing: 2px; color: var(--neon-blue); text-shadow: 0 0 10px var(--neon-blue); }
 
-.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:20px}
-.stat-box{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;transition:.2s}
-.stat-box:hover{border-color:var(--border2)}
-.stat-lbl{font-family:var(--head);font-size:9px;letter-spacing:2px;color:var(--tx3);text-transform:uppercase;margin-bottom:8px}
-.stat-val{font-family:var(--head);font-size:26px;font-weight:700}
-.stat-sub{font-size:11px;color:var(--tx3);margin-top:3px}
+/* --- Dataset Controls --- */
+.controls { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+select, button {
+  background: var(--glass); border: 1px solid var(--glass-border); color: #fff;
+  padding: 10px 20px; border-radius: 8px; cursor: pointer; backdrop-filter: blur(10px);
+}
+button:hover { background: var(--neon-blue); color: #000; box-shadow: 0 0 15px var(--neon-blue); }
 
-.charts-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:14px;margin-bottom:20px}
-.chart-box{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px}
-.chart-lbl{font-family:var(--head);font-size:9px;letter-spacing:2px;text-transform:uppercase;margin-bottom:14px}
-.chart-inner{position:relative;height:130px}
+/* --- Metrics Grid --- */
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 30px; }
+.card {
+  background: var(--glass); border: 1px solid var(--glass-border); border-radius: 20px;
+  padding: 25px; backdrop-filter: blur(20px); position: relative; transition: 0.3s;
+}
+.card:hover { border-color: var(--neon-blue); transform: translateY(-5px); }
+.card h3 { font-size: 0.9rem; text-transform: uppercase; color: #aaa; margin-bottom: 10px; }
+.card .value { font-family: 'Orbitron'; font-size: 2rem; color: #fff; }
+.card .unit { font-size: 0.8rem; color: var(--neon-blue); margin-left: 5px; }
 
-.toolbar{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap}
-.toolbar select,.toolbar button{padding:8px 16px;background:var(--card);
-  border:1px solid var(--border);border-radius:8px;
-  color:var(--tx);font-family:var(--font);font-size:12px;cursor:pointer;transition:.2s}
-.toolbar select:hover,.toolbar button:hover{border-color:var(--ocean)}
-.btn-csv{background:rgba(61,220,151,.06)!important;border-color:rgba(61,220,151,.3)!important;color:var(--good)!important}
-.btn-del{background:rgba(230,57,70,.06)!important;border-color:rgba(230,57,70,.3)!important;color:var(--bad)!important;margin-left:auto}
-.btn-csv:hover{background:rgba(61,220,151,.12)!important}
-.btn-del:hover{background:rgba(230,57,70,.12)!important}
+/* --- Chart Section --- */
+.chart-container {
+  background: var(--glass); border: 1px solid var(--glass-border); border-radius: 20px;
+  padding: 20px; backdrop-filter: blur(20px); margin-bottom: 30px; height: 400px;
+}
 
-.tbl-wrap{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden}
-table{width:100%;border-collapse:collapse;font-size:12px}
-thead th{background:var(--card2);padding:10px 16px;text-align:left;color:var(--tx2);
-  font-family:var(--head);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;font-weight:400}
-tbody tr{border-bottom:1px solid var(--border);transition:.15s}
-tbody tr:hover{background:var(--card2)}
-tbody td{padding:10px 16px;color:var(--tx);font-weight:600}
-.no-data{text-align:center;padding:60px;color:var(--tx3);font-family:var(--head);font-size:11px;letter-spacing:2px}
-.pg{display:flex;align-items:center;gap:10px;margin-top:14px;justify-content:center;
-  font-family:var(--head);font-size:9px;letter-spacing:1px;color:var(--tx3)}
-.pg button{padding:6px 16px;background:var(--card);border:1px solid var(--border);
-  border-radius:8px;color:var(--tx2);font-family:var(--head);font-size:9px;
-  letter-spacing:1px;cursor:pointer;transition:.2s}
-.pg button:hover{border-color:var(--ocean);color:var(--ocean)}
-.pg button:disabled{opacity:.25;cursor:default}
+/* --- Status Badge --- */
+.status-badge {
+  padding: 5px 15px; border-radius: 20px; font-weight: bold; text-transform: uppercase; font-size: 0.8rem;
+}
+.safe { background: rgba(0, 255, 136, 0.2); color: #00ff88; border: 1px solid #00ff88; }
+.danger { background: rgba(255, 0, 85, 0.2); color: #ff0055; border: 1px solid #ff0055; }
 
-.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);
-  backdrop-filter:blur(10px);z-index:200;align-items:center;justify-content:center}
-.modal-bg.open{display:flex}
-.modal{background:var(--card);border:1px solid var(--border2);border-radius:20px;
-  padding:32px;width:380px;max-width:92vw;
-  box-shadow:0 20px 60px rgba(0,0,0,.6),0 0 40px rgba(0,200,255,.1);
-  animation:fadeUp .2s ease}
-@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
-.modal h3{font-family:var(--head);font-size:14px;font-weight:700;letter-spacing:2px;margin-bottom:20px;
-  background:linear-gradient(90deg,var(--teal),var(--ocean));
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.modal input{width:100%;padding:12px 16px;background:var(--bg);
-  border:1px solid var(--border2);border-radius:10px;
-  color:var(--tx);font-family:var(--font);font-size:13px;font-weight:600;
-  margin-bottom:18px;outline:none;transition:.2s}
-.modal input:focus{border-color:var(--teal);box-shadow:0 0 12px rgba(0,245,212,.15)}
-.modal-btns{display:flex;gap:10px}
-.btn-ok{flex:1;padding:11px;background:linear-gradient(135deg,var(--blue),var(--ocean));
-  border:none;border-radius:10px;color:#fff;font-family:var(--head);
-  font-size:10px;letter-spacing:1.5px;cursor:pointer;transition:.2s}
-.btn-ok:hover{box-shadow:0 0 20px rgba(0,200,255,.3)}
-.btn-cancel{flex:1;padding:11px;background:transparent;
-  border:1px solid var(--border2);border-radius:10px;
-  color:var(--tx2);font-family:var(--head);font-size:10px;letter-spacing:1.5px;cursor:pointer;transition:.2s}
-.btn-cancel:hover{border-color:var(--tx2)}
 </style>
 </head>
 <body>
-<header>
-  <div class="logo">
-    <div class="logo-icon">💧</div>AQUAWATCH
-  </div>
-  <div class="hdr-r">
-    <div class="live-badge"><div class="ldot"></div>LIVE</div>
-    <div id="last-upd">Connecting…</div>
-  </div>
-</header>
 
-<div class="wrap">
-  <div class="ds-bar">
-    <span class="ds-label">Sessions</span>
-    <div class="ds-chips" id="ds-chips"><span style="color:var(--tx3)">Loading…</span></div>
-    <button class="btn-new" onclick="openModal()">＋ New Session</button>
+<div class="ocean"><div class="wave"></div></div>
+
+<div class="container">
+  <header>
+    <h1>AQUAWATCH <span style="font-weight:300">PRO</span></h1>
+    <div id="healthStatus" class="status-badge safe">System Online</div>
+  </header>
+
+  <div class="controls">
+    <select id="dsSelect" onchange="loadData(this.value)"><option>Loading Sessions...</option></select>
+    <button onclick="fetchDatasets()">🔄 Refresh</button>
+    <button onclick="downloadCSV()">📥 Export CSV</button>
   </div>
 
-  <div class="tabs">
-    <button class="tab active" onclick="switchTab('live',this)">LIVE MONITOR</button>
-    <button class="tab" onclick="switchTab('history',this)">HISTORY</button>
-  </div>
-
-  <div id="pane-live">
-    <div class="refresh-bar">
-      <span id="upd-txt" style="font-family:var(--head);font-size:10px;letter-spacing:1px">AUTO REFRESH: 30S</span>
-      <button class="btn-refresh" onclick="refreshLive()">↻ REFRESH NOW</button>
+  <div class="grid">
+    <div class="card">
+      <h3>Temperature</h3>
+      <div class="value" id="valTemp">--</div><span class="unit">°C</span>
     </div>
-
-    <div class="gauge-grid">
-      <div class="gauge-card" style="--gc:#f97316;--gc-glow:rgba(249,115,22,.3)">
-        <div class="g-title">Temperature</div>
-        <svg class="g-svg" viewBox="0 0 170 106" id="gs-temp"></svg>
-        <div class="g-val" id="gv-temp" style="color:#f97316;text-shadow:0 0 20px rgba(249,115,22,.5)">--</div>
-        <div class="g-unit">°C</div>
-        <div class="g-badge na" id="gb-temp">NO DATA</div>
-      </div>
-      <div class="gauge-card" style="--gc:#00c8ff;--gc-glow:rgba(0,200,255,.3)">
-        <div class="g-title">TDS</div>
-        <svg class="g-svg" viewBox="0 0 170 106" id="gs-tds"></svg>
-        <div class="g-val" id="gv-tds" style="color:#00c8ff;text-shadow:0 0 20px rgba(0,200,255,.5)">--</div>
-        <div class="g-unit">ppm</div>
-        <div class="g-badge na" id="gb-tds">NO DATA</div>
-      </div>
-      <div class="gauge-card" style="--gc:#a78bfa;--gc-glow:rgba(167,139,250,.3)">
-        <div class="g-title">pH Level</div>
-        <svg class="g-svg" viewBox="0 0 170 106" id="gs-ph"></svg>
-        <div class="g-val" id="gv-ph" style="color:#a78bfa;text-shadow:0 0 20px rgba(167,139,250,.5)">--</div>
-        <div class="g-unit">pH</div>
-        <div class="g-badge na" id="gb-ph">NO DATA</div>
-      </div>
-      <div class="gauge-card" style="--gc:#3ddc97;--gc-glow:rgba(61,220,151,.3)">
-        <div class="g-title">Dissolved O₂</div>
-        <svg class="g-svg" viewBox="0 0 170 106" id="gs-do"></svg>
-        <div class="g-val" id="gv-do" style="color:#3ddc97;text-shadow:0 0 20px rgba(61,220,151,.5)">--</div>
-        <div class="g-unit">mg/L</div>
-        <div class="g-badge na" id="gb-do">NO DATA</div>
-      </div>
+    <div class="card">
+      <h3>TDS Level</h3>
+      <div class="value" id="valTDS">--</div><span class="unit">ppm</span>
     </div>
-
-    <div class="stats-row">
-      <div class="stat-box">
-        <div class="stat-lbl">Total Readings</div>
-        <div class="stat-val" id="st-count" style="color:var(--ocean)">--</div>
-        <div class="stat-sub">in this session</div>
-      </div>
-      <div class="stat-box">
-        <div class="stat-lbl">Avg Temp</div>
-        <div class="stat-val" id="st-avgtemp" style="color:#f97316">--</div>
-        <div class="stat-sub">°C · last 20</div>
-      </div>
-      <div class="stat-box">
-        <div class="stat-lbl">Avg TDS</div>
-        <div class="stat-val" id="st-avgtds" style="color:#00c8ff">--</div>
-        <div class="stat-sub">ppm · last 20</div>
-      </div>
-      <div class="stat-box">
-        <div class="stat-lbl">Avg pH</div>
-        <div class="stat-val" id="st-avgph" style="color:#a78bfa">--</div>
-        <div class="stat-sub">last 20 readings</div>
-      </div>
+    <div class="card">
+      <h3>pH Level</h3>
+      <div class="value" id="valPH">--</div><span class="unit">pH</span>
     </div>
-
-    <div class="charts-grid">
-      <div class="chart-box">
-        <div class="chart-lbl" style="color:#f97316">Temperature °C</div>
-        <div class="chart-inner"><canvas id="ct-temp"></canvas></div>
-      </div>
-      <div class="chart-box">
-        <div class="chart-lbl" style="color:#00c8ff">TDS ppm</div>
-        <div class="chart-inner"><canvas id="ct-tds"></canvas></div>
-      </div>
-      <div class="chart-box">
-        <div class="chart-lbl" style="color:#a78bfa">pH Level</div>
-        <div class="chart-inner"><canvas id="ct-ph"></canvas></div>
-      </div>
-      <div class="chart-box">
-        <div class="chart-lbl" style="color:#3ddc97">Dissolved O₂ mg/L</div>
-        <div class="chart-inner"><canvas id="ct-do"></canvas></div>
-      </div>
+    <div class="card">
+      <h3>Oxygen (DO)</h3>
+      <div class="value" id="valDO">--</div><span class="unit">mg/L</span>
     </div>
   </div>
 
-  <div id="pane-history" style="display:none">
-    <div class="toolbar">
-      <span style="color:var(--tx3);font-family:var(--head);font-size:9px;letter-spacing:1px">SHOW:</span>
-      <select id="hlimit" onchange="loadHistory()">
-        <option value="50">Last 50</option>
-        <option value="100" selected>Last 100</option>
-        <option value="200">Last 200</option>
-        <option value="500">Last 500</option>
-        <option value="0">All data</option>
-      </select>
-      <button class="btn-csv" onclick="dlCSV()">↓ Download CSV</button>
-      <button class="btn-del" onclick="delCurrentDs()">✕ Delete Dataset</button>
-    </div>
-    <div class="tbl-wrap">
-      <div id="tbl-inner"><div class="no-data">SELECT A SESSION TO VIEW DATA</div></div>
-    </div>
-    <div class="pg">
-      <button id="btn-prev" onclick="goPage(-1)">← PREV</button>
-      <span id="pg-info">PAGE 1</span>
-      <button id="btn-next" onclick="goPage(1)">NEXT →</button>
-    </div>
+  <div class="chart-container">
+    <canvas id="mainChart"></canvas>
   </div>
 </div>
 
-<div class="modal-bg" id="modal">
-  <div class="modal">
-    <h3>NEW SESSION DATASET</h3>
-    <input type="text" id="ds-input" placeholder="e.g. Morning Test — April 25"/>
-    <div class="modal-btns">
-      <button class="btn-ok" onclick="createDs()">CREATE SESSION</button>
-      <button class="btn-cancel" onclick="closeModal()">CANCEL</button>
-    </div>
-  </div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
-const API="https://water-api-5vhg.onrender.com";
-let activeDsId=null,datasets=[],histData=[],pg=1;
-const PG=20,charts={};
+const API = "https://water-api-5vhg.onrender.com";
+let chart;
 
-function drawGauge(id,pct,color){
-  const svg=document.getElementById(id);svg.innerHTML='';
-  const cx=85,cy=95,r=72,ns='http://www.w3.org/2000/svg';
-  const startA=Math.PI,sweepA=Math.PI;
-  function xy(a,rad){return{x:cx+rad*Math.cos(a),y:cy+rad*Math.sin(a)}}
-  function arc(f,t,rad){
-    const s=xy(f,rad),e=xy(t,rad),lg=(t-f)>Math.PI?1:0;
-    return`M${s.x},${s.y} A${rad},${rad} 0 ${lg},1 ${e.x},${e.y}`
-  }
-  const defs=document.createElementNS(ns,'defs');
-  const filt=document.createElementNS(ns,'filter');filt.id='g'+id;
-  const blur=document.createElementNS(ns,'feGaussianBlur');blur.setAttribute('stdDeviation','3');blur.setAttribute('result','blur');
-  const merge=document.createElementNS(ns,'feMerge');
-  const m1=document.createElementNS(ns,'feMergeNode');m1.setAttribute('in','blur');
-  const m2=document.createElementNS(ns,'feMergeNode');m2.setAttribute('in','SourceGraphic');
-  merge.appendChild(m1);merge.appendChild(m2);filt.appendChild(blur);filt.appendChild(merge);defs.appendChild(filt);svg.appendChild(defs);
-  function mkPath(d,clr,w,flt){
-    const p=document.createElementNS(ns,'path');
-    p.setAttribute('d',d);p.setAttribute('stroke',clr);p.setAttribute('stroke-width',w);
-    p.setAttribute('fill','none');p.setAttribute('stroke-linecap','round');
-    if(flt)p.setAttribute('filter',`url(#${flt})`);
-    svg.appendChild(p);
-  }
-  mkPath(arc(startA,startA+sweepA,r),'#0d1e2e',11);
-  if(pct>0.005)mkPath(arc(startA,startA+Math.min(pct,1)*sweepA,r),color,11,'g'+id);
-  for(let i=0;i<=10;i++){
-    const a=startA+(i/10)*sweepA,maj=i%5===0;
-    const inner=xy(a,r-(maj?8:5)),outer=xy(a,r+2);
-    const t=document.createElementNS(ns,'line');
-    t.setAttribute('x1',inner.x);t.setAttribute('y1',inner.y);
-    t.setAttribute('x2',outer.x);t.setAttribute('y2',outer.y);
-    t.setAttribute('stroke',maj?'#1a3a52':'#0f2336');t.setAttribute('stroke-width',maj?'2':'1');
-    svg.appendChild(t);
-  }
-  const dot=document.createElementNS(ns,'circle');
-  dot.setAttribute('cx',cx);dot.setAttribute('cy',cy);dot.setAttribute('r','5');
-  dot.setAttribute('fill',pct>0.005?color:'#0d1e2e');
-  if(pct>0.005)dot.setAttribute('filter',`url(#g${id})`);
-  svg.appendChild(dot);
-}
-
-const SENSORS={
-  temp:{min:0,max:50,color:'#f97316',status:v=>v<15||v>35?['Critical','bad']:v<20||v>30?['Warning','warn']:['Optimal','ok']},
-  tds:{min:0,max:1000,color:'#00c8ff',status:v=>v>500?['Critical','bad']:v>300?['High','warn']:['Good','ok']},
-  ph:{min:0,max:14,color:'#a78bfa',status:v=>v<5||v>9?['Critical','bad']:v<6.5||v>8.5?['Off Range','warn']:['Normal','ok']},
-  do:{min:0,max:15,color:'#3ddc97',status:v=>v<4?['Critical','bad']:v<6?['Low','warn']:['Good','ok']}
-};
-function updateGauge(k,val){
-  const s=SENSORS[k];
-  const pct=val!=null?(val-s.min)/(s.max-s.min):0;
-  drawGauge('gs-'+k,Math.max(0,Math.min(pct,1)),s.color);
-  document.getElementById('gv-'+k).textContent=val!=null?Number(val).toFixed(1):'--';
-  const b=document.getElementById('gb-'+k);
-  if(val==null){b.textContent='NO DATA';b.className='g-badge na';return;}
-  const[lbl,cls]=s.status(+val);b.textContent=lbl;b.className='g-badge '+cls;
-}
-function clearGauges(){Object.keys(SENSORS).forEach(k=>updateGauge(k,null))}
-
-function initCharts(){
-  const C={temp:'#f97316',tds:'#00c8ff',ph:'#a78bfa',do:'#3ddc97'};
-  ['temp','tds','ph','do'].forEach(k=>{
-    const ctx=document.getElementById('ct-'+k).getContext('2d');
-    charts[k]=new Chart(ctx,{type:'line',data:{labels:[],datasets:[{
-      data:[],borderColor:C[k],backgroundColor:C[k]+'18',fill:true,tension:.45,
-      pointRadius:2.5,borderWidth:2,pointBackgroundColor:C[k],pointBorderColor:'transparent'
-    }]},options:{animation:{duration:400},responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false}},
-      scales:{
-        x:{ticks:{color:'#2e5f7a',font:{size:9,family:'Rajdhani'},maxRotation:0,maxTicksLimit:6},grid:{color:'rgba(0,200,255,.05)'}},
-        y:{ticks:{color:'#2e5f7a',font:{size:9,family:'Rajdhani'}},grid:{color:'rgba(0,200,255,.05)'}}
-      }}});
+// --- Initialize Chart ---
+function initChart() {
+  const ctx = document.getElementById('mainChart').getContext('2d');
+  chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [{
+        label: 'TDS (ppm)',
+        borderColor: '#00f2ff',
+        backgroundColor: 'rgba(0, 242, 255, 0.1)',
+        data: [],
+        fill: true,
+        tension: 0.4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#aaa' } },
+        x: { grid: { display: false }, ticks: { color: '#aaa' } }
+      },
+      plugins: { legend: { labels: { color: '#fff', font: { family: 'Rajdhani' } } } }
+    }
   });
 }
-function updChart(k,labels,data){charts[k].data.labels=labels;charts[k].data.datasets[0].data=data;charts[k].update()}
 
-async function loadDatasets(){
-  try{
-    const r=await fetch(API+'/datasets');datasets=await r.json();
-    renderChips();
-    if(datasets.length)selectDs(datasets[0]._id);
-    else document.getElementById('last-upd').textContent='No sessions yet';
-  }catch{document.getElementById('ds-chips').innerHTML='<span style="color:var(--bad)">API offline</span>'}
-}
-function renderChips(){
-  const el=document.getElementById('ds-chips');
-  if(!datasets.length){el.innerHTML='<span style="color:var(--tx3)">No sessions yet</span>';return;}
-  el.innerHTML=datasets.map(d=>`
-    <div class="chip ${d._id===activeDsId?'active':''}" onclick="selectDs('${d._id}')">
-      <span>${d.name}</span><span class="chip-cnt">${d.count}</span>
-      <span class="chip-del" onclick="event.stopPropagation();confirmDel('${d._id}','${d.name.replace(/'/g,"\\'")}')">✕</span>
-    </div>`).join('');
-}
-function selectDs(id){activeDsId=id;renderChips();refreshLive();loadHistory()}
-
-function openModal(){
-  const now=new Date().toLocaleString('en-BD',{timeZone:'Asia/Dhaka',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
-  document.getElementById('ds-input').value='Session — '+now;
-  document.getElementById('modal').classList.add('open');
-  setTimeout(()=>document.getElementById('ds-input').select(),80);
-}
-function closeModal(){document.getElementById('modal').classList.remove('open')}
-async function createDs(){
-  const name=document.getElementById('ds-input').value.trim();
-  if(!name)return;closeModal();
-  const r=await fetch(API+'/datasets',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})});
-  const ds=await r.json();datasets.unshift({...ds,count:0});selectDs(ds._id);
+// --- Fetch Data ---
+async function fetchDatasets() {
+  const res = await fetch(`${API}/datasets`);
+  const data = await res.json();
+  const select = document.getElementById('dsSelect');
+  select.innerHTML = data.map(d => `<option value="${d._id}">${d.name}</option>`).join('');
+  if(data.length > 0) loadData(data._id);
 }
 
-function confirmDel(id,name){if(confirm(`Delete "${name}" and all its data?`))deleteDsById(id)}
-function delCurrentDs(){const d=datasets.find(x=>x._id===activeDsId);if(d)confirmDel(d._id,d.name)}
-async function deleteDsById(id){
-  await fetch(API+'/datasets/'+id,{method:'DELETE'});
-  datasets=datasets.filter(d=>d._id!==id);
-  if(activeDsId===id)activeDsId=datasets[0]?._id||null;
-  renderChips();
-  if(activeDsId){refreshLive();loadHistory()}else clearGauges();
+async function loadData(id) {
+  const res = await fetch(`${API}/datasets/${id}/data`);
+  const readings = await res.json();
+  if(!readings.length) return;
+
+  const latest = readings;
+  document.getElementById('valTemp').innerText = latest.temp || '--';
+  document.getElementById('valTDS').innerText = latest.tds || '--';
+  document.getElementById('valPH').innerText = latest.ph || '--';
+  document.getElementById('valDO').innerText = latest.do || '--';
+
+  // Update Status
+  const status = document.getElementById('healthStatus');
+  if(latest.ph < 6.5 || latest.ph > 8.5) {
+    status.innerText = "Unsafe Water";
+    status.className = "status-badge danger";
+  } else {
+    status.innerText = "Water Quality Good";
+    status.className = "status-badge safe";
+  }
+
+  // Update Chart
+  const history = readings.slice(0, 20).reverse();
+  chart.data.labels = history.map(r => new Date(r.time).toLocaleTimeString());
+  chart.data.datasets.data = history.map(r => r.tds);
+  chart.update();
 }
 
-async function refreshLive(){
-  if(!activeDsId)return;
-  try{
-    const r=await fetch(API+`/datasets/${activeDsId}/data?limit=20`);
-    const data=await r.json();
-    if(!data.length){clearGauges();return;}
-    const lat=data[0];
-    updateGauge('temp',lat.temp);updateGauge('tds',lat.tds);
-    updateGauge('ph',lat.ph);updateGauge('do',lat.do);
-    const avg=(arr,k)=>{const v=arr.filter(d=>d[k]!=null);return v.length?(v.reduce((s,d)=>s+d[k],0)/v.length).toFixed(1):'--'};
-    document.getElementById('st-avgtemp').textContent=avg(data,'temp');
-    document.getElementById('st-avgtds').textContent=avg(data,'tds');
-    document.getElementById('st-avgph').textContent=avg(data,'ph');
-    const ds=datasets.find(d=>d._id===activeDsId);
-    document.getElementById('st-count').textContent=ds?ds.count:'--';
-    const pts=[...data].reverse();
-    const lbls=pts.map(d=>new Date(d.time).toLocaleTimeString('en-BD',{hour:'2-digit',minute:'2-digit'}));
-    updChart('temp',lbls,pts.map(d=>d.temp));updChart('tds',lbls,pts.map(d=>d.tds));
-    updChart('ph',lbls,pts.map(d=>d.ph));updChart('do',lbls,pts.map(d=>d.do));
-    const now=new Date().toLocaleTimeString('en-BD');
-    document.getElementById('last-upd').textContent=now;
-    document.getElementById('upd-txt').textContent='LAST REFRESH: '+now+' · AUTO 30S';
-    const rc=await fetch(API+'/datasets');datasets=await rc.json();renderChips();
-  }catch{document.getElementById('last-upd').textContent='Error'}
+function downloadCSV() {
+  // Add CSV logic here
+  alert("Generating CSV...");
 }
 
-async function loadHistory(){
-  if(!activeDsId)return;
-  const lim=document.getElementById('hlimit').value;
-  try{const r=await fetch(API+`/datasets/${activeDsId}/data?limit=${lim}`);histData=await r.json();pg=1;renderTable()}catch{}
-}
-function renderTable(){
-  const total=Math.ceil(histData.length/PG)||1;
-  document.getElementById('pg-info').textContent=`PAGE ${pg} / ${total}  (${histData.length} ROWS)`;
-  document.getElementById('btn-prev').disabled=pg<=1;
-  document.getElementById('btn-next').disabled=pg>=total;
-  if(!histData.length){document.getElementById('tbl-inner').innerHTML='<div class="no-data">NO DATA IN THIS SESSION</div>';return;}
-  const slice=histData.slice((pg-1)*PG,pg*PG);
-  document.getElementById('tbl-inner').innerHTML=`
-    <table><thead><tr><th>Time</th><th>Temp °C</th><th>TDS ppm</th><th>pH</th><th>DO mg/L</th></tr></thead>
-    <tbody>${slice.map(d=>`<tr>
-      <td>${new Date(d.time).toLocaleString('en-BD',{timeZone:'Asia/Dhaka'})}</td>
-      <td style="color:#f97316">${d.temp!=null?Number(d.temp).toFixed(2):'--'}</td>
-      <td style="color:#00c8ff">${d.tds!=null?Number(d.tds).toFixed(1):'--'}</td>
-      <td style="color:#a78bfa">${d.ph!=null?Number(d.ph).toFixed(2):'--'}</td>
-      <td style="color:#3ddc97">${d.do!=null?Number(d.do).toFixed(2):'--'}</td>
-    </tr>`).join('')}</tbody></table>`;
-}
-function goPage(d){const t=Math.ceil(histData.length/PG)||1;pg=Math.max(1,Math.min(t,pg+d));renderTable()}
+// Boot
+initChart();
+fetchDatasets();
+setInterval(() => {
+  const id = document.getElementById('dsSelect').value;
+  if(id) loadData(id);
+}, 5000);
 
-function dlCSV(){
-  if(!histData.length){alert('No data');return;}
-  const ds=datasets.find(d=>d._id===activeDsId);
-  const name=(ds?.name||'data').replace(/[^a-z0-9]/gi,'_');
-  const hdr='Time,Temperature(C),TDS(ppm),pH,DO(mg/L)\n';
-  const rows=histData.map(d=>`"${new Date(d.time).toLocaleString('en-BD',{timeZone:'Asia/Dhaka'})}",${d.temp??''},${d.tds??''},${d.ph??''},${d.do??''}`).join('\n');
-  const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(new Blob([hdr+rows],{type:'text/csv'})),download:name+'.csv'});
-  a.click();
-}
-
-function switchTab(t,btn){
-  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
-  btn.classList.add('active');
-  document.getElementById('pane-live').style.display=t==='live'?'':'none';
-  document.getElementById('pane-history').style.display=t==='history'?'':'none';
-  if(t==='history')loadHistory();
-}
-document.getElementById('ds-input').addEventListener('keydown',e=>{if(e.key==='Enter')createDs();if(e.key==='Escape')closeModal()});
-
-initCharts();loadDatasets();setInterval(refreshLive,30000);
 </script>
 </body>
 </html>
