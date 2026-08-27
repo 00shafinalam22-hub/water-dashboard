@@ -159,6 +159,10 @@ header{position:sticky;top:0;z-index:100;background:rgba(2,12,23,.9);
 .bad{background:rgba(230,57,70,.12);color:var(--bad);border:1px solid rgba(230,57,70,.2)}
 .na{background:rgba(255,255,255,.04);color:var(--tx3);border:1px solid var(--border)}
 
+/* ── GPS LOCATION ── */
+.gps-readout{font-family:var(--head);font-size:10px;letter-spacing:1px;color:var(--tx3)}
+.gps-readout span{color:var(--teal)}
+
 /* ── STATS ── */
 .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:20px}
 .stat-box{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;transition:.2s}
@@ -297,14 +301,9 @@ tbody td{padding:10px 16px;color:var(--tx);font-weight:600}
         <div class="g-unit">pH</div>
         <div class="g-badge na" id="gb-ph">NO DATA</div>
       </div>
-      <div class="gauge-card" style="--gc:#3ddc97;--gc-glow:rgba(61,220,151,.3)">
-        <div class="g-title">Dissolved O₂</div>
-        <svg class="g-svg" viewBox="0 0 170 106" id="gs-do"></svg>
-        <div class="g-val" id="gv-do" style="color:#3ddc97;text-shadow:0 0 20px rgba(61,220,151,.5)">--</div>
-        <div class="g-unit">mg/L</div>
-        <div class="g-badge na" id="gb-do">NO DATA</div>
-      </div>
     </div>
+
+    <div class="gps-readout">GPS · <span id="gps-coordinates">WAITING FOR GPS FIX</span></div>
 
     <div class="stats-row">
       <div class="stat-box">
@@ -341,10 +340,6 @@ tbody td{padding:10px 16px;color:var(--tx);font-weight:600}
       <div class="chart-box">
         <div class="chart-lbl" style="color:#a78bfa">pH Level</div>
         <div class="chart-inner"><canvas id="ct-ph"></canvas></div>
-      </div>
-      <div class="chart-box">
-        <div class="chart-lbl" style="color:#3ddc97">Dissolved O₂ mg/L</div>
-        <div class="chart-inner"><canvas id="ct-do"></canvas></div>
       </div>
     </div>
   </div>
@@ -454,8 +449,7 @@ function drawGauge(id, pct, color) {
 const SENSORS = {
   temp:{min:0,max:50,color:'#f97316',status:v=>v<15||v>35?['Critical','bad']:v<20||v>30?['Warning','warn']:['Optimal','ok']},
   tds:{min:0,max:1000,color:'#00c8ff',status:v=>v>500?['Critical','bad']:v>300?['High','warn']:['Good','ok']},
-  ph:{min:0,max:14,color:'#a78bfa',status:v=>v<5||v>9?['Critical','bad']:v<6.5||v>8.5?['Off Range','warn']:['Normal','ok']},
-  do:{min:0,max:15,color:'#3ddc97',status:v=>v<4?['Critical','bad']:v<6?['Low','warn']:['Good','ok']}
+  ph:{min:0,max:14,color:'#a78bfa',status:v=>v<5||v>9?['Critical','bad']:v<6.5||v>8.5?['Off Range','warn']:['Normal','ok']}
 };
 
 function updateGauge(k, val) {
@@ -467,12 +461,22 @@ function updateGauge(k, val) {
   if(val==null){b.textContent='NO DATA';b.className='g-badge na';return;}
   const[lbl,cls]=s.status(+val); b.textContent=lbl; b.className='g-badge '+cls;
 }
-function clearGauges(){Object.keys(SENSORS).forEach(k=>updateGauge(k,null))}
+function clearGPS(){
+  document.getElementById('gps-coordinates').textContent='WAITING FOR GPS FIX';
+}
+function updateGPS(reading){
+  if(reading.latitude==null||reading.longitude==null){clearGPS();return;}
+  const lat=Number(reading.latitude), lon=Number(reading.longitude);
+  if(!Number.isFinite(lat)||!Number.isFinite(lon)){clearGPS();return;}
+  document.getElementById('gps-coordinates').textContent=
+    'Latitude: '+lat.toFixed(6)+'  ·  Longitude: '+lon.toFixed(6);
+}
+function clearGauges(){Object.keys(SENSORS).forEach(k=>updateGauge(k,null));clearGPS()}
 
 // ── CHARTS ──
 function initCharts(){
-  const C={temp:'#f97316',tds:'#00c8ff',ph:'#a78bfa',do:'#3ddc97'};
-  ['temp','tds','ph','do'].forEach(k=>{
+  const C={temp:'#f97316',tds:'#00c8ff',ph:'#a78bfa'};
+  ['temp','tds','ph'].forEach(k=>{
     const ctx=document.getElementById('ct-'+k).getContext('2d');
     charts[k]=new Chart(ctx,{type:'line',data:{labels:[],datasets:[{
       data:[],borderColor:C[k],backgroundColor:C[k]+'18',fill:true,tension:.45,
@@ -493,12 +497,12 @@ async function loadDatasets(){
     // fetch datasets + active session simultaneously
     const [r, ra] = await Promise.all([
       fetch(API+'/datasets'),
-      fetch(API+'/active-session').catch(()=>null)
+      fetch(API+'/datasets/active').catch(()=>null)
     ]);
     datasets = await r.json();
     if(ra && ra.ok){
       const active = await ra.json();
-      espActiveDsId = active.datasetId;
+      espActiveDsId = active._id;
       updateActiveIndicator(active.name);
     } else {
       espActiveDsId = null;
@@ -594,7 +598,8 @@ async function refreshLive(){
     if(!data.length){clearGauges();return;}
     const lat=data[0];
     updateGauge('temp',lat.temp); updateGauge('tds',lat.tds);
-    updateGauge('ph',lat.ph);     updateGauge('do',lat.do);
+    updateGauge('ph',lat.ph);
+    updateGPS(lat);
     const avg=(arr,k)=>{const v=arr.filter(d=>d[k]!=null);return v.length?(v.reduce((s,d)=>s+d[k],0)/v.length).toFixed(1):'--'};
     document.getElementById('st-avgtemp').textContent=avg(data,'temp');
     document.getElementById('st-avgtds').textContent=avg(data,'tds');
@@ -604,7 +609,7 @@ async function refreshLive(){
     const pts=[...data].reverse();
     const lbls=pts.map(d=>new Date(d.time).toLocaleTimeString('en-BD',{hour:'2-digit',minute:'2-digit'}));
     updChart('temp',lbls,pts.map(d=>d.temp)); updChart('tds',lbls,pts.map(d=>d.tds));
-    updChart('ph',lbls,pts.map(d=>d.ph));     updChart('do',lbls,pts.map(d=>d.do));
+    updChart('ph',lbls,pts.map(d=>d.ph));
     const now=new Date().toLocaleTimeString('en-BD');
     document.getElementById('last-upd').textContent=now;
     document.getElementById('upd-txt').textContent='LAST REFRESH: '+now+' · AUTO 30S';
@@ -626,13 +631,12 @@ function renderTable(){
   if(!histData.length){document.getElementById('tbl-inner').innerHTML='<div class="no-data">NO DATA IN THIS SESSION</div>';return;}
   const slice=histData.slice((pg-1)*PG,pg*PG);
   document.getElementById('tbl-inner').innerHTML=`
-    <table><thead><tr><th>Time</th><th>Temp °C</th><th>TDS ppm</th><th>pH</th><th>DO mg/L</th></tr></thead>
+    <table><thead><tr><th>Time</th><th>Temp °C</th><th>TDS ppm</th><th>pH</th></tr></thead>
     <tbody>${slice.map(d=>`<tr>
       <td>${new Date(d.time).toLocaleString('en-BD',{timeZone:'Asia/Dhaka'})}</td>
       <td style="color:#f97316">${d.temp!=null?Number(d.temp).toFixed(2):'--'}</td>
       <td style="color:#00c8ff">${d.tds!=null?Number(d.tds).toFixed(1):'--'}</td>
       <td style="color:#a78bfa">${d.ph!=null?Number(d.ph).toFixed(2):'--'}</td>
-      <td style="color:#3ddc97">${d.do!=null?Number(d.do).toFixed(2):'--'}</td>
     </tr>`).join('')}</tbody></table>`;
 }
 function goPage(d){const t=Math.ceil(histData.length/PG)||1;pg=Math.max(1,Math.min(t,pg+d));renderTable()}
@@ -642,8 +646,8 @@ function dlCSV(){
   if(!histData.length){alert('No data');return;}
   const ds=datasets.find(d=>d._id===activeDsId);
   const name=(ds?.name||'data').replace(/[^a-z0-9]/gi,'_');
-  const hdr='Time,Temperature(C),TDS(ppm),pH,DO(mg/L)\n';
-  const rows=histData.map(d=>`"${new Date(d.time).toLocaleString('en-BD',{timeZone:'Asia/Dhaka'})}",${d.temp??''},${d.tds??''},${d.ph??''},${d.do??''}`).join('\n');
+  const hdr='Time,Temperature(C),TDS(ppm),pH\n';
+  const rows=histData.map(d=>`"${new Date(d.time).toLocaleString('en-BD',{timeZone:'Asia/Dhaka'})}",${d.temp??''},${d.tds??''},${d.ph??''}`).join('\n');
   const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(new Blob([hdr+rows],{type:'text/csv'})),download:name+'.csv'});
   a.click();
 }
